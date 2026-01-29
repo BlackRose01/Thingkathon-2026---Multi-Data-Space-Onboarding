@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: thingkathon26
+
+---
+apiVersion: v1
+data:
+  .dockerconfigjson: 
+kind: Secret
+metadata:
+  creationTimestamp: null
+  name: regcred
+  namespace: thingkathon26
+type: kubernetes.io/dockerconfigjson
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: x-forces
+  namespace: thingkathon26
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: x-forces
+  template:
+    metadata:
+      labels:
+        app: x-forces
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+      - image: x-forces
+        name: git.blackrose.dev/blackrose/thingkathon26:2026-01-28
+        ports:
+          - 3000:3000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: x-forces-service
+  namespace: thingkathon26
+spec:
+  selector:
+    app: x-forces
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: x-forces-redirect-https
+  namespace: thingkathon26
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: x-forces-ingress-http
+  namespace: thingkathon26
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`x-forces.blackrose.dev`)
+      kind: Rule
+      services:
+        - name: x-forces-service
+          port: 3000
+      middlewares:
+        - name: x-forces-redirect-https
+          namespace: thingkathon26
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: x-forces-ingress-https
+  namespace: thingkathon26
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`x-forces.blackrose.dev`)
+      kind: Rule
+      services:
+        - name: x-forces-service
+          port: 3000
+  tls:
+    secretName: tls-certs-blackrose-dev
