@@ -35,10 +35,11 @@ spec:
       imagePullSecrets:
         - name: regcred
       containers:
-      - image: x-forces
-        name: git.blackrose.dev/blackrose/thingkathon26:2026-01-28
+      - name: x-forces
+        image: git.blackrose.dev/blackrose/thingkathon26:2026-01-28
         ports:
-          - 3000:3000
+          - name: http
+            containerPort: 3000
 
 ---
 apiVersion: v1
